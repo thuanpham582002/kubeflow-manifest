@@ -2829,7 +2829,7 @@ data:
         "configCluster": false,
         "configValidation": true,
         "defaultPodDisruptionBudget": {
-          "enabled": true
+          "enabled": false
         },
         "defaultResources": {
           "requests": {
@@ -2888,7 +2888,7 @@ data:
             }
           },
           "startupProbe": {
-            "enabled": true,
+            "enabled": false,
             "failureThreshold": 600
           },
           "statusPort": 15020,
@@ -2928,7 +2928,7 @@ data:
       },
       "pilot": {
         "cni": {
-          "enabled": true,
+          "enabled": false,
           "provider": "default"
         },
         "env": {}
@@ -2974,7 +2974,7 @@ data:
         "enableIstioConfigCRDs": true
       },
       "cni": {
-        "enabled": true,
+        "enabled": false,
         "provider": "default"
       },
       "configMap": true,
@@ -3007,7 +3007,7 @@ data:
         "configCluster": false,
         "configValidation": true,
         "defaultPodDisruptionBudget": {
-          "enabled": true
+          "enabled": false
         },
         "defaultResources": {
           "requests": {
@@ -3066,7 +3066,7 @@ data:
             }
           },
           "startupProbe": {
-            "enabled": true,
+            "enabled": false,
             "failureThreshold": 600
           },
           "statusPort": 15020,
@@ -3135,9 +3135,9 @@ data:
       },
       "pilot": {
         "cni": {
-          "enabled": true
+          "enabled": false
         },
-        "enabled": true
+        "enabled": false
       },
       "podAnnotations": {},
       "podLabels": {},
@@ -3172,11 +3172,11 @@ data:
         "namespace": ""
       },
       "telemetry": {
-        "enabled": true,
+        "enabled": false,
         "v2": {
-          "enabled": true,
+          "enabled": false,
           "prometheus": {
-            "enabled": true
+            "enabled": false
           },
           "stackdriver": {
             "enabled": false
@@ -3220,9 +3220,9 @@ data:
       },
       "pilot": {
         "cni": {
-          "enabled": true
+          "enabled": false
         },
-        "enabled": true
+        "enabled": false
       },
       "ztunnel": {
         "resourceName": "ztunnel"
