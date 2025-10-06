@@ -39,7 +39,7 @@ resources:
 # Istio
 - ../common/istio/istio-crds/base
 - ../common/istio/istio-namespace/base
-- ../common/istio/istio-install/overlays/oauth2-proxy
+- ../common/istio/istio-install/overlays/oauth2-proxy-cni-disabled
 # NOTE: For Google Kubernetes Engine (GKE), use:
 # - ../common/istio/istio-install/overlays/gke
 #GKE mounts `/opt/cni/bin` as read-only for security reasons, preventing the Istio CNI installer from writing the CNI binary.

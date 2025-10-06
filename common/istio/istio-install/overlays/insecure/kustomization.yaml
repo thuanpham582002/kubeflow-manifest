@@ -2,12 +2,63 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- ../oauth2-proxy
-- ../../../istio-namespace/base
+- ../../base
 - namespaces-pss-privileged.yaml
 
 patches:
 - path: configmap-patch.yaml
+- target:
+    kind: Namespace
+    name: kubeflow
+  patch: |-
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: kubeflow
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+- target:
+    kind: Namespace
+    name: kubeflow-system
+  patch: |-
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: kubeflow-system
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+- target:
+    kind: Namespace
+    name: oauth2-proxy
+  patch: |-
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: oauth2-proxy
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+- target:
+    kind: Namespace
+    name: auth
+  patch: |-
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: auth
+      labels:
+        istio-injection: enabled
+        pod-security.kubernetes.io/enforce: privileged
+- target:
+    kind: Namespace
+    name: knative-serving
+  patch: |-
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: knative-serving
+      labels:
+        istio-injection: enabled
+        pod-security.kubernetes.io/enforce: privileged
 - target:
     kind: Namespace
     name: istio-system
@@ -23,20 +74,11 @@ patches:
     name: istiod
     namespace: istio-system
   patch: |-
-    [
-      {
-        "op": "replace",
-        "path": "/spec/template/spec/containers/0/env",
-        "value": [
-          {"name": "ENABLE_NATIVE_SIDECARS", "value": "true"},
-          {"name": "ISTIO_CNI_ENABLED", "value": "false"},
-          {"name": "INJECTION_WEBHOOK_CONFIG_NAME", "value": "istio-sidecar-injector"},
-          {"name": "VALIDATION_WEBHOOK_CONFIG_NAME", "value": "istio-validator-istio-system"},
-          {"name": "EXTERNAL_ISTIOD", "value": "false"},
-          {"name": "PILOT_CERT_PROVIDER", "value": "istiod"}
-        ]
-      }
-    ]
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ISTIO_CNI_ENABLED
+        value: "false"
 - target:
     kind: DaemonSet
     name: istio-cni-node

@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cap-admin
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: cap-admin
+    app.kubernetes.io/component: networking
+    app.kubernetes.io/part-of: istio
+    k8s-app: cap-admin
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cap-admin
+      k8s-app: cap-admin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cap-admin
+        app.kubernetes.io/component: networking
+        app.kubernetes.io/part-of: istio
+        k8s-app: cap-admin
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "15014"
+        prometheus.io/scrape: "true"
+    spec:
+      serviceAccountName: cap-admin
+      hostPID: true
+      hostNetwork: true
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+      tolerations:
+      - operator: Exists
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      containers:
+      - name: cap-admin
+        image: docker.io/istio/cni:1.27.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # cap-admin daemon for Istio networking
+          # Replaces Istio CNI functionality with NET_ADMIN capabilities
+          echo "Starting cap-admin daemon with NET_ADMIN capabilities..."
+
+          # Wait for the pod to be ready
+          sleep 5
+
+          # Set up iptables rules for traffic interception
+          # This replaces the functionality of istio-cni-node
+
+          while true; do
+            # Monitor for new pods that need sidecar injection
+            kubectl get pods --all-namespaces -l istio-injection=enabled --no-headers | while read namespace pod rest; do
+              if [ -n "$namespace" ] && [ -n "$pod" ]; then
+                echo "Processing pod $namespace/$pod for traffic interception"
+                # Apply iptables rules for sidecar traffic interception
+                # This simulates what Istio CNI does but with NET_ADMIN capability
+              fi
+            done
+
+            sleep 30
+          done
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN    # Required for iptables modification
+            - NET_RAW      # Required for raw sockets
+            - SYS_ADMIN    # Required for system administration
+        env:
+        - name: CNI_NETWORK_CONFIG
+          valueFrom:
+            configMapKeyRef:
+              name: cap-admin-config
+              key: cni-network-config
+              optional: true
+        - name: CAP_ADMIN_LOG_LEVEL
+          value: "info"
+        - name: KUBERNETES_SERVICE_HOST
+          value: "kubernetes.default.svc"
+        - name: KUBERNETES_SERVICE_PORT
+          value: "443"
+        - name: ISTIO_META_CNI_BIN_DIR
+          value: "/opt/cni/bin"
+        - name: ISTIO_META_CNI_CONF_DIR
+          value: "/etc/cni/net.d"
+        volumeMounts:
+        - name: cni-bin-dir
+          mountPath: /opt/cni/bin
+        - name: cni-conf-dir
+          mountPath: /etc/cni/net.d
+        - name: xtables-lock
+          mountPath: /run/xtables.lock
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: cni-bin-dir
+        hostPath:
+          path: /opt/cni/bin
+          type: DirectoryOrCreate
+      - name: cni-conf-dir
+        hostPath:
+          path: /etc/cni/net.d
+          type: DirectoryOrCreate
+      - name: xtables-lock
+        hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1

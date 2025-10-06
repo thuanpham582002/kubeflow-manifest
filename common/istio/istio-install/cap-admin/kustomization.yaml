@@ -1,0 +1,142 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../base
+
+patches:
+# Remove istio-cni ServiceAccount
+- target:
+    kind: ServiceAccount
+    name: istio-cni
+    namespace: kube-system
+  patch: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: istio-cni
+      namespace: kube-system
+    $patch: delete
+
+# Remove istio-cni ConfigMap
+- target:
+    kind: ConfigMap
+    name: istio-cni-config
+    namespace: kube-system
+  patch: |-
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: istio-cni-config
+      namespace: kube-system
+    $patch: delete
+
+# Remove istio-cni-node DaemonSet
+- target:
+    kind: DaemonSet
+    name: istio-cni-node
+    namespace: kube-system
+  patch: |-
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: istio-cni-node
+      namespace: kube-system
+    $patch: delete
+
+# Remove istio-cni ClusterRole
+- target:
+    kind: ClusterRole
+    name: istio-cni
+  patch: |-
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: istio-cni
+    $patch: delete
+
+# Remove istio-cni-repair ClusterRole
+- target:
+    kind: ClusterRole
+    name: istio-cni-repair-role
+  patch: |-
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: istio-cni-repair-role
+    $patch: delete
+
+# Remove istio-cni ClusterRoleBinding
+- target:
+    kind: ClusterRoleBinding
+    name: istio-cni
+  patch: |-
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: istio-cni
+    $patch: delete
+
+# Remove istio-cni-repair ClusterRoleBinding
+- target:
+    kind: ClusterRoleBinding
+    name: istio-cni-repair-rolebinding
+  patch: |-
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: istio-cni-repair-rolebinding
+    $patch: delete
+
+# Patch istiod deployment to ensure CNI is disabled and sidecar injection is enabled
+- target:
+    kind: Deployment
+    name: istiod
+    namespace: istio-system
+  patch: |-
+    [
+      {
+        "op": "replace",
+        "path": "/spec/template/spec/containers/0/env",
+        "value": [
+          {"name": "ENABLE_NATIVE_SIDECARS", "value": "true"},
+          {"name": "ISTIO_CNI_ENABLED", "value": "false"},
+          {"name": "INJECTION_WEBHOOK_CONFIG_NAME", "value": "istio-sidecar-injector"},
+          {"name": "VALIDATION_WEBHOOK_CONFIG_NAME", "value": "istio-validator-istio-system"},
+          {"name": "EXTERNAL_ISTIOD", "value": "false"},
+          {"name": "PILOT_CERT_PROVIDER", "value": "istiod"},
+          {"name": "PILOT_ENABLE_AMBIENT_MESH", "value": "false"},
+          {"name": "CA_ADDR", "value": "istiod-ca.istio-system.svc:15012"}
+        ]
+      }
+    ]
+
+# Update webhook configurations to reference cap-admin
+- target:
+    kind: MutatingWebhookConfiguration
+    name: istio-sidecar-injector
+  patch: |-
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: MutatingWebhookConfiguration
+    metadata:
+      name: istio-sidecar-injector
+    webhooks:
+    - name: sidecar-injector.istio.io
+      clientConfig:
+        service:
+          namespace: istio-system
+          name: istiod
+          path: "/inject"
+      rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+      failurePolicy: Fail
+      sideEffects: None
+      admissionReviewVersions: ["v1beta1", "v1"]
+      objectSelector:
+        matchLabels:
+          istio.io/rev: "default"
+
+namespace: istio-system
